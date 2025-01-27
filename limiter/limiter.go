@@ -7,17 +7,12 @@ import (
 	"time"
 )
 
+var TestIP string
+
 type Store interface {
 	Increment(ctx context.Context, key string, expiration string) (int64, error)
 	IsBlocked(ctx context.Context, key string) (bool, error)
 	BlockKey(ctx context.Context, key string, blockTime time.Duration) error
-}
-
-type Config struct {
-	IPRateLimit    int64
-	IPBlockTime    time.Duration
-	TokenRateLimit int64
-	TokenBlockTime time.Duration
 }
 
 type RateLimiter struct {
@@ -40,6 +35,7 @@ func NewRateLimiter(store *RedisStore, ipRateLimit, tokenRateLimit int64, ipBloc
 
 func (r *RateLimiter) MiddlewareHTTP(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+
 		ctx := req.Context()
 		token := req.Header.Get("API_KEY")
 
@@ -86,6 +82,9 @@ func (r *RateLimiter) MiddlewareHTTP(next http.Handler) http.Handler {
 }
 
 func getClientIP(r *http.Request) string {
+	if TestIP != "" {
+		return TestIP
+	}
 	ipPort := r.RemoteAddr
 	if strings.Contains(ipPort, ":") {
 		return strings.Split(ipPort, ":")[0]
